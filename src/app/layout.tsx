@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { ToastRoot } from "@/shared/ui/Toaster";
 import "@/shared/styles/globals.css";
 
 const geistSans = Geist({
@@ -25,7 +26,7 @@ export default function RootLayout({
   return (
     <html lang="ru">
       <body className={`${geistSans.variable} ${geistMono.variable}`}>
-        {children}
+        <ToastRoot>{children}</ToastRoot>
       </body>
     </html>
   );

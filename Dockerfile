@@ -7,6 +7,10 @@ COPY package.json package-lock.json ./
 RUN npm ci
 
 COPY . .
+
+ARG NEXT_PUBLIC_WS_URL=
+ENV NEXT_PUBLIC_WS_URL=$NEXT_PUBLIC_WS_URL
+
 RUN npm run build
 
 FROM node:20-alpine

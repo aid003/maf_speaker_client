@@ -3,16 +3,21 @@ const AUDIO_CHANNELS = 1;
 const AUDIO_FORMAT = "f32le";
 const AUDIO_CHUNK_HEADER_BYTES = 8;
 
-type ClientJsonEvent = {
-  type: string;
-  [key: string]: unknown;
-};
+type ClientJsonEvent =
+  | { type: "session.start"; device_id: string; audio_format: string; sample_rate: number; channels: number }
+  | { type: "playback.finished" }
+  | { type: "debug.ping"; sent_at: number };
 
-type ServerJsonEvent = {
-  type: string;
-  mime_type?: string;
-  [key: string]: unknown;
-};
+type ServerJsonEvent =
+  | { type: "wake.detected" }
+  | { type: "speech.started" }
+  | { type: "speech.ended" }
+  | { type: "assistant.processing" }
+  | { type: "assistant.transcript"; text: string }
+  | { type: "assistant.text"; text: string }
+  | { type: "assistant.audio"; format: string; mime_type?: string }
+  | { type: "error"; message: string }
+  | { type: "debug.pong"; sent_at: number; echoed_at: number };
 
 type WsStatus = "idle" | "connecting" | "connected" | "reconnecting" | "closed";
 

@@ -10,6 +10,7 @@ import {
 } from "@/shared/config/index";
 import { MicStreamer } from "@/shared/lib/audio/index";
 import { AudioPlayer } from "@/shared/lib/player/index";
+import { useToast } from "@/shared/lib/toast/index";
 import { VoiceSocket } from "@/shared/lib/ws/index";
 
 type PermissionStateLike = PermissionState | "unknown";
@@ -48,6 +49,7 @@ function pushEvent(events: string[], label: string): string[] {
 }
 
 export function useVoiceSession(): UseVoiceSessionResult {
+  const { addToast } = useToast();
   const [uiState, setUiState] = useState<UiState>("idle");
   const [transcript, setTranscript] = useState("");
   const [assistantText, setAssistantText] = useState("");
@@ -118,6 +120,7 @@ export function useVoiceSession(): UseVoiceSessionResult {
     if (!wsUrl) {
       setUiState("error");
       addEvent("error: NEXT_PUBLIC_WS_URL is empty");
+      addToast("Не задан адрес сервера (NEXT_PUBLIC_WS_URL)", "error");
       return;
     }
 
@@ -141,6 +144,7 @@ export function useVoiceSession(): UseVoiceSessionResult {
       addEvent(`ws.${nextStatus}`);
       if (nextStatus === "closed" && isRunningRef.current) {
         setUiState("error");
+        addToast("Соединение с сервером разорвано", "error");
       }
     });
 
@@ -162,6 +166,7 @@ export function useVoiceSession(): UseVoiceSessionResult {
 
       if (event.type === "error") {
         setUiState("error");
+        addToast(event.message || "Ошибка сервера", "error");
       }
 
       if (event.type === "debug.pong") {
@@ -179,6 +184,7 @@ export function useVoiceSession(): UseVoiceSessionResult {
       } catch {
         setUiState("error");
         addEvent("error: playback failed");
+        addToast("Не удалось воспроизвести ответ", "error");
       }
     });
 
@@ -199,6 +205,7 @@ export function useVoiceSession(): UseVoiceSessionResult {
     } catch {
       setUiState("error");
       addEvent("error: microphone unavailable");
+      addToast("Нет доступа к микрофону", "error");
       return;
     }
 
@@ -211,7 +218,7 @@ export function useVoiceSession(): UseVoiceSessionResult {
       const sentAt = Date.now();
       socket.sendJson({ type: "debug.ping", sent_at: sentAt });
     }, PING_INTERVAL_MS);
-  }, [addEvent, isRunning, readMicPermission]);
+  }, [addEvent, addToast, isRunning, readMicPermission]);
 
   useEffect(() => {
     return () => {
