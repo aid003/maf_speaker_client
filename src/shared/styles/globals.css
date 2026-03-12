@@ -1,0 +1,232 @@
+@import "modern-normalize/modern-normalize.css";
+
+:root {
+  --background: #ffffff;
+  --foreground: #171717;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0a0a0a;
+    --foreground: #ededed;
+  }
+}
+
+html,
+body {
+  max-width: 100vw;
+  overflow-x: hidden;
+}
+
+body {
+  color: var(--foreground);
+  background: var(--background);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+@media (prefers-color-scheme: dark) {
+  html {
+    color-scheme: dark;
+  }
+}
+
+.voicePage {
+  min-height: 100vh;
+  display: grid;
+  grid-template-rows: 1fr auto auto;
+  gap: 20px;
+  padding: 24px 20px 28px;
+  background:
+    radial-gradient(circle at 50% 35%, rgba(22, 70, 48, 0.42), transparent 36%),
+    linear-gradient(180deg, #06080d 0%, #04050a 100%);
+}
+
+.voiceFaceWrap {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 46vh;
+}
+
+.assistantFaceCanvas {
+  width: min(980px, 94vw);
+  height: min(540px, 56vh);
+  border-radius: 28px;
+}
+
+.voiceStatePanel {
+  text-align: center;
+}
+
+.voiceStatePanel h1 {
+  margin: 0;
+  font-size: 20px;
+  color: rgba(240, 255, 249, 0.9);
+  letter-spacing: 0.04em;
+}
+
+.voiceStateLabel {
+  margin: 6px 0 0;
+  font-size: clamp(28px, 6vw, 46px);
+  color: #86ffc2;
+  font-weight: 700;
+}
+
+.voiceStateHint {
+  margin: 6px 0 0;
+  color: rgba(198, 255, 227, 0.75);
+}
+
+.voiceTextPanel {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.voiceTextPanel article {
+  min-height: 90px;
+  background: rgba(8, 15, 12, 0.72);
+  border: 1px solid rgba(122, 255, 196, 0.2);
+  border-radius: 14px;
+  padding: 12px 14px;
+}
+
+.voiceTextPanel h2 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  color: rgba(146, 255, 205, 0.92);
+  text-transform: uppercase;
+}
+
+.voiceTextPanel p {
+  margin: 0;
+  color: rgba(236, 255, 246, 0.93);
+}
+
+.debugFab {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  width: 16px;
+  height: 16px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  background: #5fffb2;
+  box-shadow: 0 0 18px rgba(95, 255, 178, 0.9);
+}
+
+.debugOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 7, 0.7);
+  backdrop-filter: blur(2px);
+  display: grid;
+  place-items: center;
+  padding: 16px;
+}
+
+.debugModal {
+  width: min(760px, 96vw);
+  max-height: 88vh;
+  overflow-y: auto;
+  background: #09110f;
+  border: 1px solid rgba(110, 255, 188, 0.3);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.debugModalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+}
+
+.debugModalHeader h2 {
+  margin: 0;
+  color: #abffd5;
+}
+
+.debugModalHeader button,
+.debugControls button {
+  border: 1px solid rgba(116, 255, 191, 0.45);
+  background: rgba(10, 32, 24, 0.94);
+  color: #defff1;
+  border-radius: 10px;
+  padding: 8px 12px;
+}
+
+.debugControls {
+  margin-top: 12px;
+  display: flex;
+  gap: 10px;
+}
+
+.debugStats {
+  list-style: none;
+  margin: 16px 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px 12px;
+}
+
+.debugStats li {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid rgba(111, 255, 190, 0.16);
+  background: rgba(7, 22, 16, 0.78);
+}
+
+.debugStats span {
+  color: rgba(185, 255, 224, 0.86);
+}
+
+.debugStats strong {
+  color: #f2fff9;
+}
+
+.debugModal h3 {
+  margin: 0 0 8px;
+  color: #a7ffd1;
+}
+
+.debugEvents {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.debugEvents li {
+  border-radius: 8px;
+  border: 1px solid rgba(110, 255, 188, 0.16);
+  background: rgba(6, 21, 15, 0.8);
+  padding: 6px 8px;
+  color: #d8ffed;
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-size: 12px;
+}
+
+@media (max-width: 860px) {
+  .voiceTextPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .debugStats {
+    grid-template-columns: 1fr;
+  }
+}
