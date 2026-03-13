@@ -14,8 +14,11 @@ type ServerJsonEvent =
   | { type: "speech.ended" }
   | { type: "assistant.processing" }
   | { type: "assistant.transcript"; text: string }
+  | { type: "assistant.partial_transcript"; content: string; final?: boolean }
   | { type: "assistant.text"; text: string }
+  | { type: "assistant.partial_text"; content: string; final?: boolean }
   | { type: "assistant.audio"; format: string; mime_type?: string }
+  | { type: "assistant.audio.end" }
   | { type: "error"; message: string }
   | { type: "debug.pong"; sent_at: number; echoed_at: number };
 
@@ -25,7 +28,14 @@ type EventHandler = (event: ServerJsonEvent) => void;
 type AudioHandler = (payload: ArrayBuffer, mimeType?: string) => void;
 type StatusHandler = (status: WsStatus) => void;
 
+type AudioStreamHandler = {
+  onAudioStart(meta: { format: string; mimeType: string }): void;
+  onAudioChunk(chunk: ArrayBuffer): void;
+  onAudioEnd(): void;
+};
+
 const RECONNECT_DELAY_MS = 1_500;
+const LEGACY_SINGLE_BLOB_MS = 150;
 
 function toJsonEvent(data: string): ServerJsonEvent | null {
   try {
@@ -54,8 +64,11 @@ export class VoiceSocket {
   private deviceId = "robot-01";
   private eventHandler: EventHandler | null = null;
   private audioHandler: AudioHandler | null = null;
+  private audioStreamHandler: AudioStreamHandler | null = null;
   private statusHandler: StatusHandler | null = null;
   private pendingAudioMimeType: string | undefined;
+  private legacyBlobTimer: number | null = null;
+  private streamChunkCount = 0;
   private status: WsStatus = "idle";
 
   constructor(url: string) {
@@ -70,6 +83,10 @@ export class VoiceSocket {
     this.audioHandler = cb;
   }
 
+  onAudioStream(handler: AudioStreamHandler | null): void {
+    this.audioStreamHandler = handler;
+  }
+
   onStatus(cb: StatusHandler): void {
     this.statusHandler = cb;
   }
@@ -82,6 +99,7 @@ export class VoiceSocket {
 
   disconnect(): void {
     this.shouldReconnect = false;
+    this.clearLegacyBlobTimer();
     if (this.reconnectTimer) {
       window.clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
@@ -140,14 +158,33 @@ export class VoiceSocket {
         }
         if (event.type === "assistant.audio") {
           this.pendingAudioMimeType = event.mime_type;
+          this.streamChunkCount = 0;
+          this.clearLegacyBlobTimer();
+          if (this.audioStreamHandler) {
+            this.audioStreamHandler.onAudioStart({
+              format: event.format,
+              mimeType: event.mime_type ?? `audio/${event.format}`,
+            });
+          }
+        }
+        if (event.type === "assistant.audio.end") {
+          this.clearLegacyBlobTimer();
+          this.pendingAudioMimeType = undefined;
+          this.audioStreamHandler?.onAudioEnd();
         }
         this.eventHandler?.(event);
         return;
       }
 
       if (message.data instanceof ArrayBuffer) {
-        this.audioHandler?.(message.data, this.pendingAudioMimeType);
-        this.pendingAudioMimeType = undefined;
+        if (this.audioStreamHandler) {
+          this.streamChunkCount += 1;
+          this.audioStreamHandler.onAudioChunk(message.data);
+          this.scheduleLegacyBlobEnd();
+        } else {
+          this.audioHandler?.(message.data, this.pendingAudioMimeType);
+          this.pendingAudioMimeType = undefined;
+        }
       }
     };
 
@@ -170,5 +207,22 @@ export class VoiceSocket {
   private setStatus(status: WsStatus): void {
     this.status = status;
     this.statusHandler?.(this.status);
+  }
+
+  private clearLegacyBlobTimer(): void {
+    if (this.legacyBlobTimer !== null) {
+      window.clearTimeout(this.legacyBlobTimer);
+      this.legacyBlobTimer = null;
+    }
+  }
+
+  private scheduleLegacyBlobEnd(): void {
+    this.clearLegacyBlobTimer();
+    if (this.streamChunkCount !== 1) return;
+    const handler = this.audioStreamHandler;
+    this.legacyBlobTimer = window.setTimeout(() => {
+      this.legacyBlobTimer = null;
+      handler?.onAudioEnd();
+    }, LEGACY_SINGLE_BLOB_MS);
   }
 }

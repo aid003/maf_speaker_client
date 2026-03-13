@@ -29,7 +29,9 @@ export type VoiceDiagnostics = {
 export type UseVoiceSessionResult = {
   uiState: UiState;
   transcript: string;
+  partialTranscript: string;
   assistantText: string;
+  partialAssistantText: string;
   isRunning: boolean;
   startSession: () => Promise<void>;
   stopSession: () => Promise<void>;
@@ -52,7 +54,9 @@ export function useVoiceSession(): UseVoiceSessionResult {
   const { addToast } = useToast();
   const [uiState, setUiState] = useState<UiState>("idle");
   const [transcript, setTranscript] = useState("");
+  const [partialTranscript, setPartialTranscript] = useState("");
   const [assistantText, setAssistantText] = useState("");
+  const [partialAssistantText, setPartialAssistantText] = useState("");
   const [isRunning, setIsRunning] = useState(false);
   const [hasMicrophoneApi, setHasMicrophoneApi] = useState(false);
   const [permission, setPermission] = useState<PermissionStateLike>("unknown");
@@ -129,7 +133,9 @@ export function useVoiceSession(): UseVoiceSessionResult {
     setSeq(0);
     setDroppedChunks(0);
     setTranscript("");
+    setPartialTranscript("");
     setAssistantText("");
+    setPartialAssistantText("");
     setUiState("idle");
 
     const mic = new MicStreamer();
@@ -156,12 +162,46 @@ export function useVoiceSession(): UseVoiceSessionResult {
         setUiState(mappedState);
       }
 
+      if (event.type === "assistant.partial_transcript") {
+        setPartialTranscript(event.content);
+        if (event.final) {
+          setTranscript(event.content);
+          setPartialTranscript("");
+        }
+      }
+
       if (event.type === "assistant.transcript") {
         setTranscript(event.text);
+        setPartialTranscript("");
+      }
+
+      if (event.type === "assistant.partial_text") {
+        setPartialAssistantText(event.content);
+        if (event.final) {
+          setAssistantText(event.content);
+          setPartialAssistantText("");
+        }
       }
 
       if (event.type === "assistant.text") {
         setAssistantText(event.text);
+        setPartialAssistantText("");
+      }
+
+      if (event.type === "assistant.audio") {
+        setUiState("speaking");
+        player
+          .waitForStreamEnd()
+          .then(() => {
+            socket.sendJson({ type: "playback.finished" });
+            setUiState("idle");
+            addEvent("client.playback.finished");
+          })
+          .catch(() => {
+            setUiState("error");
+            addEvent("error: playback failed");
+            addToast("Не удалось воспроизвести ответ", "error");
+          });
       }
 
       if (event.type === "error") {
@@ -173,6 +213,8 @@ export function useVoiceSession(): UseVoiceSessionResult {
         setRttMs(Math.max(0, event.echoed_at - event.sent_at));
       }
     });
+
+    socket.onAudioStream(player);
 
     socket.onAudio(async (payload, mimeType) => {
       try {
@@ -243,7 +285,9 @@ export function useVoiceSession(): UseVoiceSessionResult {
   return {
     uiState,
     transcript,
+    partialTranscript,
     assistantText,
+    partialAssistantText,
     isRunning,
     startSession,
     stopSession,

@@ -43,14 +43,27 @@ export type ServerAssistantTranscriptEvent = {
   type: "assistant.transcript";
   text: string;
 };
+export type ServerAssistantPartialTranscriptEvent = {
+  type: "assistant.partial_transcript";
+  content: string;
+  final?: boolean;
+};
 export type ServerAssistantTextEvent = {
   type: "assistant.text";
   text: string;
+};
+export type ServerAssistantPartialTextEvent = {
+  type: "assistant.partial_text";
+  content: string;
+  final?: boolean;
 };
 export type ServerAssistantAudioEvent = {
   type: "assistant.audio";
   format: "wav" | "mp3" | "pcm" | string;
   mime_type?: string;
+};
+export type ServerAssistantAudioEndEvent = {
+  type: "assistant.audio.end";
 };
 export type ServerErrorEvent = {
   type: "error";
@@ -68,8 +81,11 @@ export type ServerJsonEvent =
   | ServerSpeechEndedEvent
   | ServerAssistantProcessingEvent
   | ServerAssistantTranscriptEvent
+  | ServerAssistantPartialTranscriptEvent
   | ServerAssistantTextEvent
+  | ServerAssistantPartialTextEvent
   | ServerAssistantAudioEvent
+  | ServerAssistantAudioEndEvent
   | ServerErrorEvent
   | ServerDebugPongEvent;
 
