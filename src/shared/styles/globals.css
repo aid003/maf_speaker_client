@@ -43,7 +43,7 @@ a {
   display: grid;
   grid-template-rows: 1fr auto;
   gap: 20px;
-  padding: 24px 20px 28px;
+  padding: 20px 16px 24px;
   background:
     radial-gradient(circle at 50% 35%, rgba(22, 70, 48, 0.42), transparent 36%),
     linear-gradient(180deg, #06080d 0%, #04050a 100%);
@@ -53,7 +53,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 46vh;
+  min-height: clamp(320px, 60vh, 760px);
 }
 
 .voiceStartWrap {
@@ -86,8 +86,8 @@ a {
 }
 
 .assistantFaceCanvas {
-  width: min(980px, 94vw);
-  height: min(540px, 56vh);
+  width: clamp(320px, 97vw, 1100px);
+  height: clamp(320px, 64vh, 760px);
   border-radius: 28px;
 }
 
@@ -331,6 +331,21 @@ a {
 }
 
 @media (max-width: 860px) {
+  .voicePage {
+    gap: 14px;
+    padding: 12px 10px 16px;
+  }
+
+  .voiceFaceWrap {
+    min-height: clamp(340px, 68vh, 820px);
+  }
+
+  .assistantFaceCanvas {
+    width: 100%;
+    height: clamp(340px, 72vh, 860px);
+    border-radius: 20px;
+  }
+
   .voiceTextPanel {
     grid-template-columns: 1fr;
   }

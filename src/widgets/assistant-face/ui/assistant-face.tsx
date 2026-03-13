@@ -8,8 +8,6 @@ type AssistantFaceProps = {
   state: UiState;
 };
 
-const EYE_GAP = 180;
-
 type MicroEvent = "blink" | "doubleBlink" | "winkLeft" | "winkRight" | "microSaccade";
 
 type EyePose = {
@@ -64,7 +62,7 @@ function stateIntensity(state: UiState): number {
     case "armed":
       return 0.9;
     case "recording":
-      return 1;
+      return 1.22;
     case "processing":
       return 0.7;
     case "speaking":
@@ -101,10 +99,10 @@ function pickEvent(state: UiState): MicroEvent {
     return "microSaccade";
   }
   if (state === "processing") {
-    if (roll < 0.62) return "blink";
-    if (roll < 0.83) return "doubleBlink";
-    if (roll < 0.91) return "winkLeft";
-    if (roll < 0.97) return "winkRight";
+    if (roll < 0.2) return "blink";
+    if (roll < 0.42) return "doubleBlink";
+    if (roll < 0.62) return "winkLeft";
+    if (roll < 0.8) return "winkRight";
     return "microSaccade";
   }
   if (state === "error") {
@@ -121,7 +119,7 @@ function pickEvent(state: UiState): MicroEvent {
 function eventIntervalSeconds(state: UiState): number {
   if (state === "speaking") return 1.4 + Math.random() * 1.7;
   if (state === "recording" || state === "armed") return 1.8 + Math.random() * 2.4;
-  if (state === "processing") return 1.6 + Math.random() * 1.9;
+  if (state === "processing") return 0.65 + Math.random() * 0.8;
   if (state === "error") return 2.4 + Math.random() * 2.6;
   return 1.7 + Math.random() * 2.2;
 }
@@ -129,11 +127,11 @@ function eventIntervalSeconds(state: UiState): number {
 function poseForState(state: UiState, t: number, offsetSign: 1 | -1): EyePose {
   if (state === "recording" || state === "armed") {
     return {
-      driftX: Math.sin(t * 0.8 + offsetSign) * 0.5,
-      driftY: -0.9,
-      pupilScale: state === "recording" ? 1.14 : 1.08,
+      driftX: Math.sin(t * 0.9 + offsetSign) * 0.35,
+      driftY: -0.7,
+      pupilScale: state === "recording" ? 1.34 : 1.16,
       smileLid: 0.02,
-      baseLid: 0.12,
+      baseLid: 0.1,
     };
   }
 
@@ -149,11 +147,11 @@ function poseForState(state: UiState, t: number, offsetSign: 1 | -1): EyePose {
 
   if (state === "processing") {
     return {
-      driftX: Math.sin(t * 1.1 + offsetSign * 0.9) * 2.2,
-      driftY: 0.8,
-      pupilScale: 0.98,
-      smileLid: 0.02,
-      baseLid: 0.34,
+      driftX: Math.sin(t * 2.8 + offsetSign * 0.8) * 7 + Math.cos(t * 1.4) * 2.2,
+      driftY: Math.cos(t * 2.35 + offsetSign * 0.4) * 4.1 + Math.sin(t * 1.6) * 1.3,
+      pupilScale: 1.08,
+      smileLid: 0.06,
+      baseLid: 0.28,
     };
   }
 
@@ -243,20 +241,22 @@ export function AssistantFace({ state }: AssistantFaceProps) {
       ctx.fillRect(0, 0, width, height);
 
       const intensity = stateIntensity(stateRef.current);
-      const eyeWidth = Math.max(140, Math.min(width * 0.19, 210));
+      const eyeWidth = Math.max(120, Math.min(width * 0.28, 300));
       const eyeHeight = eyeWidth * 1.48;
       const eyeRx = eyeWidth / 2;
       const eyeRy = eyeHeight / 2;
       const eyeCorner = eyeWidth * 0.22;
       const centerY = height * 0.52 + Math.sin(t * 0.75) * 5;
-      const leftCx = width / 2 - EYE_GAP;
-      const rightCx = width / 2 + EYE_GAP;
+      const eyeGap = Math.max(72, Math.min(width * 0.165, 180));
+      const leftCx = width / 2 - eyeGap;
+      const rightCx = width / 2 + eyeGap;
 
       const blinkPhaseBase = (t * 0.19 + Math.sin(t * 0.41) * 0.03) % 1;
       const blinkStrength = blinkPhaseBase > 0.93 ? (blinkPhaseBase - 0.93) / 0.07 : 0;
       const baseBlink = blinkPulse(blinkStrength);
 
       const speakingPulse = stateRef.current === "speaking" ? 0.25 + Math.sin(t * 8) * 0.12 : 0;
+      const processingPulse = stateRef.current === "processing" ? 0.35 + Math.sin(t * 8.8) * 0.24 : 0;
       if (!nextEventAt) {
         resetEventTimer(t);
       }
@@ -327,14 +327,15 @@ export function AssistantFace({ state }: AssistantFaceProps) {
         const driftY = offsetSign === -1 ? smooth.leftY : smooth.rightY;
         const pupilScale = offsetSign === -1 ? smooth.leftScale : smooth.rightScale;
         const baseLid = offsetSign === -1 ? smooth.leftLid : smooth.rightLid;
-        const glow = 36 + intensity * 20;
+        const recordingBoost = stateRef.current === "recording" ? 20 : 0;
+        const glow = 36 + intensity * 20 + recordingBoost;
         ctx.shadowColor = `rgba(58, 255, 172, ${0.4 + intensity * 0.35})`;
-        ctx.shadowBlur = glow + speakingPulse * 30;
+        ctx.shadowBlur = glow + speakingPulse * 30 + processingPulse * 28;
 
         const gradient = ctx.createLinearGradient(centerX - eyeRx, centerY - eyeRy, centerX + eyeRx, centerY + eyeRy);
-        gradient.addColorStop(0, `rgba(188, 255, 229, ${0.9 * intensity})`);
-        gradient.addColorStop(0.4, `rgba(83, 246, 180, ${0.97 * intensity})`);
-        gradient.addColorStop(1, `rgba(19, 217, 132, ${0.95 * intensity})`);
+        gradient.addColorStop(0, `rgba(188, 255, 229, ${0.95 * intensity})`);
+        gradient.addColorStop(0.4, `rgba(83, 246, 180, ${1.02 * intensity})`);
+        gradient.addColorStop(1, `rgba(19, 217, 132, ${0.98 * intensity})`);
         ctx.fillStyle = gradient;
         roundedRectPath(ctx, centerX - eyeRx, centerY - eyeRy, eyeWidth, eyeHeight, eyeCorner);
         ctx.fill();
@@ -379,6 +380,14 @@ export function AssistantFace({ state }: AssistantFaceProps) {
         ctx.fillStyle = lidGradient;
         upperLidRectPath(ctx, centerX - eyeRx, centerY - eyeRy, eyeWidth, eyeHeight, eyeCorner, closeAmount);
         ctx.fill();
+
+        if (stateRef.current === "processing") {
+          const scanY = centerY - eyeRy + ((Math.sin(t * 3.2 + offsetSign) + 1) * 0.5) * eyeHeight;
+          const scanHeight = eyeHeight * 0.1;
+          ctx.fillStyle = `rgba(175, 255, 222, ${0.12 + processingPulse * 0.12})`;
+          roundedRectPath(ctx, centerX - eyeRx + 2, scanY, eyeWidth - 4, scanHeight, eyeCorner * 0.5);
+          ctx.fill();
+        }
         ctx.restore();
       };
 
