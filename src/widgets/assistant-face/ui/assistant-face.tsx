@@ -241,13 +241,15 @@ export function AssistantFace({ state }: AssistantFaceProps) {
       ctx.fillRect(0, 0, width, height);
 
       const intensity = stateIntensity(stateRef.current);
-      const eyeWidth = Math.max(120, Math.min(width * 0.28, 300));
+      // Адаптивный базовый размер: укладываемся и по ширине (2 глаза + зазор), и по высоте (высота глаза)
+      const baseSize = Math.min(width / 0.84, height / 0.47);
+      const eyeWidth = baseSize * 0.32;
       const eyeHeight = eyeWidth * 1.48;
       const eyeRx = eyeWidth / 2;
       const eyeRy = eyeHeight / 2;
       const eyeCorner = eyeWidth * 0.22;
       const centerY = height * 0.52 + Math.sin(t * 0.75) * 5;
-      const eyeGap = Math.max(72, Math.min(width * 0.165, 180));
+      const eyeGap = baseSize * 0.2;
       const leftCx = width / 2 - eyeGap;
       const rightCx = width / 2 + eyeGap;
 
