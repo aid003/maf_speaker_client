@@ -53,7 +53,7 @@ a {
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: clamp(320px, 60vh, 760px);
+  min-height: clamp(480px, 72vh, 900px);
 }
 
 .voiceStartWrap {
@@ -86,8 +86,8 @@ a {
 }
 
 .assistantFaceCanvas {
-  width: clamp(320px, 97vw, 1100px);
-  height: clamp(320px, 64vh, 760px);
+  width: clamp(360px, 98vw, 1200px);
+  height: clamp(480px, 72vh, 900px);
   border-radius: 28px;
 }
 
