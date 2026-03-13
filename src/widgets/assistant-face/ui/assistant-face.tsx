@@ -9,7 +9,6 @@ type AssistantFaceProps = {
 };
 
 const EYE_GAP = 180;
-const TAU = Math.PI * 2;
 
 type MicroEvent = "blink" | "doubleBlink" | "winkLeft" | "winkRight" | "microSaccade";
 
@@ -29,33 +28,35 @@ function lerp(from: number, to: number, alpha: number): number {
   return from + (to - from) * alpha;
 }
 
-function ellipsePath(
+function roundedRectPath(
   ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  radiusX: number,
-  radiusY: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
 ): void {
+  const r = Math.min(radius, width / 2, height / 2);
   ctx.beginPath();
-  ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, 0, TAU);
+  ctx.moveTo(x + r, y);
+  ctx.arcTo(x + width, y, x + width, y + height, r);
+  ctx.arcTo(x + width, y + height, x, y + height, r);
+  ctx.arcTo(x, y + height, x, y, r);
+  ctx.arcTo(x, y, x + width, y, r);
   ctx.closePath();
 }
 
-function upperLidPath(
+function upperLidRectPath(
   ctx: CanvasRenderingContext2D,
-  centerX: number,
-  centerY: number,
-  radiusX: number,
-  radiusY: number,
+  x: number,
+  y: number,
+  width: number,
+  height: number,
+  radius: number,
   closeAmount: number,
 ): void {
-  const lidBottomY = centerY - radiusY + (radiusY * 2 + 8) * closeAmount;
-  ctx.beginPath();
-  ctx.moveTo(centerX - radiusX, centerY);
-  ctx.ellipse(centerX, centerY, radiusX, radiusY, 0, Math.PI, TAU, false);
-  ctx.lineTo(centerX + radiusX, lidBottomY);
-  ctx.quadraticCurveTo(centerX, lidBottomY + radiusY * 0.22, centerX - radiusX, lidBottomY);
-  ctx.closePath();
+  const lidHeight = clamp(height * closeAmount + 6, 6, height + 2);
+  roundedRectPath(ctx, x, y, width, lidHeight, radius * 0.9);
 }
 
 function stateIntensity(state: UiState): number {
@@ -243,9 +244,10 @@ export function AssistantFace({ state }: AssistantFaceProps) {
 
       const intensity = stateIntensity(stateRef.current);
       const eyeWidth = Math.max(140, Math.min(width * 0.19, 210));
-      const eyeHeight = eyeWidth * 1.38;
+      const eyeHeight = eyeWidth * 1.48;
       const eyeRx = eyeWidth / 2;
       const eyeRy = eyeHeight / 2;
+      const eyeCorner = eyeWidth * 0.22;
       const centerY = height * 0.52 + Math.sin(t * 0.75) * 5;
       const leftCx = width / 2 - EYE_GAP;
       const rightCx = width / 2 + EYE_GAP;
@@ -334,7 +336,7 @@ export function AssistantFace({ state }: AssistantFaceProps) {
         gradient.addColorStop(0.4, `rgba(83, 246, 180, ${0.97 * intensity})`);
         gradient.addColorStop(1, `rgba(19, 217, 132, ${0.95 * intensity})`);
         ctx.fillStyle = gradient;
-        ellipsePath(ctx, centerX, centerY, eyeRx, eyeRy);
+        roundedRectPath(ctx, centerX - eyeRx, centerY - eyeRy, eyeWidth, eyeHeight, eyeCorner);
         ctx.fill();
 
         ctx.shadowBlur = 0;
@@ -342,20 +344,28 @@ export function AssistantFace({ state }: AssistantFaceProps) {
         innerGradient.addColorStop(0, "rgba(255, 255, 255, 0.24)");
         innerGradient.addColorStop(1, "rgba(255, 255, 255, 0.06)");
         ctx.fillStyle = innerGradient;
-        ellipsePath(ctx, centerX, centerY + 2, eyeRx - 7, eyeRy - 9);
+        roundedRectPath(ctx, centerX - eyeRx + 7, centerY - eyeRy + 8, eyeWidth - 14, eyeHeight - 16, eyeCorner * 0.9);
         ctx.fill();
 
-        const pupilRx = eyeRx * 0.2 * pupilScale;
-        const pupilRy = eyeRy * 0.42;
-        const pupilCx = centerX + driftX;
-        const pupilCy = centerY + eyeRy * 0.17 + driftY;
+        const pupilWidth = eyeWidth * 0.36 * pupilScale;
+        const pupilHeight = eyeHeight * 0.48;
+        const pupilX = centerX - pupilWidth / 2 + driftX;
+        const pupilY = centerY - pupilHeight / 2 + eyeRy * 0.2 + driftY;
+        const pupilCorner = pupilWidth * 0.34;
 
         ctx.fillStyle = "#020204";
-        ellipsePath(ctx, pupilCx, pupilCy, pupilRx, pupilRy);
+        roundedRectPath(ctx, pupilX, pupilY, pupilWidth, pupilHeight, pupilCorner);
         ctx.fill();
 
         ctx.fillStyle = "rgba(255, 255, 255, 0.9)";
-        ellipsePath(ctx, pupilCx + pupilRx * 0.26, pupilCy - pupilRy * 0.55, pupilRx * 0.28, pupilRy * 0.18);
+        roundedRectPath(
+          ctx,
+          pupilX + pupilWidth * 0.34,
+          pupilY + pupilHeight * 0.12,
+          pupilWidth * 0.24,
+          pupilHeight * 0.18,
+          pupilWidth * 0.1,
+        );
         ctx.fill();
 
         const closeAmount = clamp(baseLid + baseBlink * 0.82 + winkBoost * 0.98, 0.06, 0.98);
@@ -364,10 +374,10 @@ export function AssistantFace({ state }: AssistantFaceProps) {
         lidGradient.addColorStop(1, "rgba(46, 205, 136, 0.9)");
 
         ctx.save();
-        ellipsePath(ctx, centerX, centerY, eyeRx, eyeRy);
+        roundedRectPath(ctx, centerX - eyeRx, centerY - eyeRy, eyeWidth, eyeHeight, eyeCorner);
         ctx.clip();
         ctx.fillStyle = lidGradient;
-        upperLidPath(ctx, centerX, centerY, eyeRx + 1, eyeRy + 1, closeAmount);
+        upperLidRectPath(ctx, centerX - eyeRx, centerY - eyeRy, eyeWidth, eyeHeight, eyeCorner, closeAmount);
         ctx.fill();
         ctx.restore();
       };
